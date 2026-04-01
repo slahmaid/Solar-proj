@@ -123,13 +123,13 @@
           <p class="cta-trust">السعر أعلاه يخصّ الموديل المختار والكمية المعروضة. بعد إرسال النموذج، يتصل بك فريقنا لتأكيد الطلب والعنوان والدفع.</p>
         </div>
 
+        <!-- طلبات بالبريد عبر Web3Forms -->
         <form
           class="order-form"
           id="order-form"
           action="#"
           method="post"
-          data-sheet-endpoint="https://script.google.com/macros/s/AKfycbzu9u549obG_uIVJKa7tBYPambIXnAqmxDkqgXFAbD1qQa3k8n6ofmmLOdzCfRCvusq/exec"
-          data-sheet-token="v1_7f9c2e1a4d8b6c3f0e5a9b2d7c1f4a8e6b3d9c0f2a7e5b1d4c8f6a3e0b9d2c"
+          data-web3forms-access-key="5973be36-ca6a-4f4c-a1ae-06aee58af97e"
           data-price-sale-target="order-price-sale"
           data-price-compare-target="order-price-compare"
           data-discount-target="order-price-discount"
@@ -217,6 +217,10 @@
                   <label for="address">العنوان</label>
                   <input type="text" id="address" name="address" autocomplete="street-address" required />
                 </div>
+                <div class="form-field form-field-wide">
+                  <label for="order-email">البريد الإلكتروني (اختياري)</label>
+                  <input type="email" id="order-email" name="email" autocomplete="email" inputmode="email" />
+                </div>
               </div>
               <div class="cta-fields-spacer" aria-hidden="true"></div>
               <div class="form-row-phone-submit">
@@ -227,7 +231,8 @@
                 <div class="form-submit-cell">
                   <span class="form-submit-spacer" aria-hidden="true">.</span>
                   <button type="submit" class="btn btn-primary btn-submit-order">أكّد طلبي الآن</button>
-                  <p class="form-submit-note">يرجى إبقاء هاتفك متاحاً لتأكيد الطلب.</p>
+                  <p class="form-submit-note">بعد الإرسال ستصلك تفاصيل الطلب على بريدك — سنتواصل معك لتأكيد التوصيل.</p>
+                  <p class="form-submit-status" aria-live="polite"></p>
                 </div>
               </div>
             </div>
@@ -597,8 +602,7 @@
           id="order-form-retarget"
           action="#"
           method="post"
-          data-sheet-endpoint="https://script.google.com/macros/s/AKfycbzu9u549obG_uIVJKa7tBYPambIXnAqmxDkqgXFAbD1qQa3k8n6ofmmLOdzCfRCvusq/exec"
-          data-sheet-token="v1_7f9c2e1a4d8b6c3f0e5a9b2d7c1f4a8e6b3d9c0f2a7e5b1d4c8f6a3e0b9d2c"
+          data-web3forms-access-key="5973be36-ca6a-4f4c-a1ae-06aee58af97e"
           data-price-sale-target="order-rt-price-sale"
           data-price-compare-target="order-rt-price-compare"
           data-discount-target="order-rt-price-discount"
@@ -691,6 +695,16 @@
                     required
                   />
                 </div>
+                <div class="form-field form-field-wide">
+                  <label for="order-email-retarget">البريد الإلكتروني (اختياري)</label>
+                  <input
+                    type="email"
+                    id="order-email-retarget"
+                    name="email_rt"
+                    autocomplete="email"
+                    inputmode="email"
+                  />
+                </div>
               </div>
               <div class="cta-fields-spacer" aria-hidden="true"></div>
               <div class="form-row-phone-submit">
@@ -701,7 +715,8 @@
                 <div class="form-submit-cell">
                   <span class="form-submit-spacer" aria-hidden="true">.</span>
                   <button type="submit" class="btn btn-primary btn-submit-order">أكّد طلبي الآن</button>
-                  <p class="form-submit-note">بعد الإرسال، سنتواصل معك لتأكيد كل التفاصيل.</p>
+                  <p class="form-submit-note">بعد الإرسال ستصلك تفاصيل الطلب على بريدك — سنتواصل معك لتأكيد كل التفاصيل.</p>
+                  <p class="form-submit-status" aria-live="polite"></p>
                 </div>
               </div>
             </div>

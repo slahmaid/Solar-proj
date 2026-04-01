@@ -13,6 +13,8 @@
           var btnMinus = form.querySelector(".qty-minus-btn");
           var btnPlus = form.querySelector(".qty-plus-btn");
           var totalAmountEl = form.querySelector(".quantity-total-amount");
+          var submitBtn = form.querySelector(".btn-submit-order");
+          var statusEl = form.querySelector(".form-submit-status");
 
           function formatDhAmount(n) {
             var num = parseInt(String(n), 10);
@@ -111,62 +113,26 @@
             return "";
           }
 
-          function getWhatsAppNumber() {
-            var byForm = form.getAttribute("data-whatsapp-number");
-            if (byForm) return byForm.replace(/\D/g, "");
-            var telLink = document.querySelector(".site-footer-phone a[href^='tel:']");
-            if (!telLink) return "212600000000";
-            return (telLink.getAttribute("href") || "").replace("tel:", "").replace(/\D/g, "") || "212600000000";
-          }
-
-          function getSheetConfig() {
-            return {
-              endpoint: (form.getAttribute("data-sheet-endpoint") || "").trim(),
-              token: (form.getAttribute("data-sheet-token") || "").trim()
-            };
-          }
-
-          function postOrderToSheet(payload, sheetConfig) {
-            if (!sheetConfig.endpoint || !sheetConfig.token) return Promise.resolve(false);
-
-            var body = JSON.stringify(payload);
-            var isAppsScript = /script\.google\.com\/macros\/s\//i.test(sheetConfig.endpoint);
-
-            // no-cors text/plain avoids most preflight/CORS issues on Apps Script web apps.
-            if (isAppsScript) {
-              return fetch(sheetConfig.endpoint, {
-                method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: body,
-                keepalive: true
-              })
-                .then(function () {
-                  return true;
-                })
-                .catch(function () {
-                  return false;
-                });
-            }
-
-            return fetch(sheetConfig.endpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: body,
-              keepalive: true
-            })
-              .then(function (res) {
-                return res.ok;
-              })
-              .catch(function () {
-                return false;
-              });
+          function setSubmitStatus(text, kind) {
+            if (!statusEl) return;
+            statusEl.textContent = text || "";
+            statusEl.classList.remove("is-success", "is-error");
+            if (kind) statusEl.classList.add(kind);
           }
 
           form.addEventListener("submit", function (e) {
             e.preventDefault();
             if (!form.checkValidity()) {
               form.reportValidity();
+              return;
+            }
+
+            var accessKey = (form.getAttribute("data-web3forms-access-key") || "").trim();
+            if (!accessKey) {
+              setSubmitStatus(
+                "يرجى إضافة مفتاح Web3Forms في data-web3forms-access-key داخل النموذج (أنشئ مفتاحاً مجانياً على web3forms.com).",
+                "is-error"
+              );
               return;
             }
 
@@ -178,43 +144,70 @@
             var city = getFieldValue(["#city", "#city-retarget", "input[name='city']", "input[name='city_rt']"]);
             var address = getFieldValue(["#address", "#address-retarget", "input[name='address']", "input[name='address_rt']"]);
             var phone = getFieldValue(["#phone", "#phone-retarget", "input[name='phone']", "input[name='phone_rt']"]);
+            var emailOpt = getFieldValue(["#order-email", "#order-email-retarget", "input[name='email']", "input[name='email_rt']"]);
             var total = totalAmountEl ? totalAmountEl.textContent.trim() : "-";
-            var whatsappNumber = getWhatsAppNumber();
-            var sheetConfig = getSheetConfig();
-            var sourceForm = form.id || "order-form";
-            var priceValue = checked && checked.dataset.priceSale ? parseInt(String(checked.dataset.priceSale), 10) : 0;
-            if (!priceValue || isNaN(priceValue)) priceValue = 0;
-            var quantityValue = parseInt(qty, 10);
-            if (!quantityValue || isNaN(quantityValue)) quantityValue = 1;
-
-            var sheetPayload = {
-              token: sheetConfig.token,
-              model: model,
-              quantity: quantityValue,
-              price: priceValue * quantityValue,
-              price_unit: priceValue,
-              fullname: fullname,
-              city: city,
-              address: address,
-              phone: phone,
-              source_form: sourceForm,
-              page_url: window.location.href
-            };
-
+            var formLabel = form.id === "order-form-retarget" ? "نموذج ثانٍ" : "النموذج الرئيسي";
             var message =
-              "السلام عليكم، أريد تأكيد هذا الطلب:\n" +
-              "- الموديل: " + model + "\n" +
-              "- الكمية: " + qty + "\n" +
-              "- السعر للوحدة: " + unitPrice + "\n" +
-              "- المجموع: " + total + "\n" +
-              "- الاسم: " + fullname + "\n" +
-              "- المدينة: " + city + "\n" +
-              "- العنوان: " + address + "\n" +
-              "- الهاتف: " + phone;
+              "طلب جديد — بروجكتور شمسي\n" +
+              "المصدر: " + formLabel + "\n" +
+              "الموديل: " + model + "\n" +
+              "الكمية: " + qty + "\n" +
+              "السعر للوحدة: " + unitPrice + "\n" +
+              "المجموع: " + total + "\n" +
+              "الاسم: " + fullname + "\n" +
+              "المدينة: " + city + "\n" +
+              "العنوان: " + address + "\n" +
+              "الهاتف: " + phone + "\n" +
+              (emailOpt ? "البريد (إن وُجد): " + emailOpt + "\n" : "") +
+              "الصفحة: " + window.location.href;
 
-            postOrderToSheet(sheetPayload, sheetConfig).finally(function () {
-              window.location.href = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
-            });
+            var payload = {
+              access_key: accessKey,
+              subject: "طلب جديد — بروجكتور شمسي (" + model + " × " + qty + ")",
+              name: fullname,
+              phone: phone,
+              message: message,
+              botcheck: "",
+              from_name: fullname
+            };
+            if (emailOpt) {
+              payload.email = emailOpt;
+            }
+
+            if (submitBtn) submitBtn.disabled = true;
+            setSubmitStatus("جاري إرسال الطلب إلى بريدك…", "");
+
+            fetch("https://api.web3forms.com/submit", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json"
+              },
+              body: JSON.stringify(payload)
+            })
+              .then(function (res) {
+                return res.json();
+              })
+              .then(function (data) {
+                if (data && data.success) {
+                  setSubmitStatus("تم إرسال الطلب بنجاح. راجع بريدك الإلكتروني.", "is-success");
+                  form.reset();
+                  clampQty();
+                  syncPrice();
+                  syncVariantImage();
+                } else {
+                  setSubmitStatus(
+                    (data && data.message) || "تعذّر إرسال الطلب. تحقق من المفتاح أو حاول لاحقاً.",
+                    "is-error"
+                  );
+                }
+              })
+              .catch(function () {
+                setSubmitStatus("خطأ في الاتصال. تحقق من الشبكة وحاول مرة أخرى.", "is-error");
+              })
+              .finally(function () {
+                if (submitBtn) submitBtn.disabled = false;
+              });
           });
         }
 

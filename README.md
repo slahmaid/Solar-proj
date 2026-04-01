@@ -15,7 +15,6 @@ Static Arabic RTL landing page: order forms, pricing, FAQ, and SEO JSON-LD.
 | `privacy.html` | سياسة الخصوصية |
 | `terms.html` | شروط الاستخدام |
 | `preview.html` | Redirect to `index.html` (legacy bookmark) |
-| `backend/google-apps-script/Code.gs` | Google Sheets webhook (Apps Script) |
 
 ## Run locally
 
@@ -27,30 +26,19 @@ npx --yes serve .
 
 Then open the URL shown (e.g. `http://localhost:3000`).
 
+## Order emails (Web3Forms)
+
+Orders are sent to **your email inbox** via [Web3Forms](https://web3forms.com) (free tier).
+
+1. Create an access key at [web3forms.com](https://web3forms.com) and confirm the inbox you want to receive orders in.
+2. In `index.html`, set the same key on **both** order forms (`#order-form` and `#order-form-retarget`):
+
+   - `data-web3forms-access-key="YOUR_ACCESS_KEY"`
+
+3. Deploy. Submissions appear as emails with the full order details (model, quantity, totals, address, phone).
+
+Optional: customers can fill **البريد الإلكتروني (اختياري)** so Web3Forms can attach a reply address when supported.
+
 ## Optional React scaffold
 
 The `src/components/` folder holds a small header example that imports `assets/logo.svg`. It is not wired to the static HTML build; use it only if you add a bundler (e.g. Vite + React).
-
-## Google Sheets + WhatsApp (both active)
-
-Forms now support dual behavior:
-
-- Send order data to Google Sheets endpoint (if configured)
-- Redirect customer to WhatsApp confirmation chat
-
-### Apps Script setup
-
-1. Create a Google Sheet and open **Extensions -> Apps Script**.
-2. Paste `backend/google-apps-script/Code.gs`.
-3. Change `SECRET_TOKEN` in the script.
-4. Deploy as **Web app** (execute as: Me, access: Anyone).
-5. Copy Web app URL.
-
-### Connect forms
-
-In `index.html`, set these attributes on both forms (`#order-form` and `#order-form-retarget`):
-
-- `data-sheet-endpoint="YOUR_WEB_APP_URL"`
-- `data-sheet-token="YOUR_SECRET_TOKEN"`
-
-If these are empty, WhatsApp redirect still works and Sheet submission is skipped.
