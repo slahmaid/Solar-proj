@@ -94,6 +94,19 @@
             if (!endpoint) {
               throw new Error("MISSING_ENDPOINT");
             }
+            var isGoogleScript = /script\.google\.com\/macros\/s\//i.test(endpoint);
+
+            // Google Apps Script web apps often fail CORS checks with normal fetch.
+            // For those endpoints, use no-cors + text/plain to avoid preflight/CORS blocking.
+            if (isGoogleScript) {
+              await fetch(endpoint, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify(payload)
+              });
+              return;
+            }
 
             var res = await fetch(endpoint, {
               method: "POST",
