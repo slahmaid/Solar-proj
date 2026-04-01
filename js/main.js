@@ -119,6 +119,13 @@
             return (telLink.getAttribute("href") || "").replace("tel:", "").replace(/\D/g, "") || "212600000000";
           }
 
+          function getOrderEndpoint() {
+            var byForm = form.getAttribute("data-order-endpoint");
+            if (byForm) return byForm;
+            if (window.ORDER_API_URL) return window.ORDER_API_URL;
+            return "http://localhost:4000/api/orders";
+          }
+
           form.addEventListener("submit", function (e) {
             e.preventDefault();
             if (!form.checkValidity()) {
@@ -136,6 +143,8 @@
             var phone = getFieldValue(["#phone", "#phone-retarget", "input[name='phone']", "input[name='phone_rt']"]);
             var total = totalAmountEl ? totalAmountEl.textContent.trim() : "-";
             var whatsappNumber = getWhatsAppNumber();
+            var sourceForm = form.id || "order-form";
+            var endpoint = getOrderEndpoint();
             var message =
               "السلام عليكم، أريد تأكيد هذا الطلب:\n" +
               "- الموديل: " + model + "\n" +
@@ -146,8 +155,30 @@
               "- المدينة: " + city + "\n" +
               "- العنوان: " + address + "\n" +
               "- الهاتف: " + phone;
+            var payload = {
+              model: model,
+              quantity: Number.parseInt(qty, 10) || 1,
+              unitPrice: Number.parseInt(checked && checked.dataset.priceSale ? checked.dataset.priceSale : "0", 10) || 0,
+              fullname: fullname,
+              city: city,
+              address: address,
+              phone: phone,
+              sourceForm: sourceForm
+            };
 
-            window.location.href = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
+            fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            })
+              .then(function (res) {
+                if (!res.ok) throw new Error("ORDER_SAVE_FAILED");
+                window.location.href =
+                  "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
+              })
+              .catch(function () {
+                alert("تعذّر تسجيل الطلب حالياً. حاول مرة أخرى بعد لحظات.");
+              });
           });
         }
 

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orders - Simple Manager</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; background: #f8fafc; color: #0f172a; }
+      .bar { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+      button, a { padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; text-decoration: none; color: #0f172a; }
+      table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e2e8f0; }
+      th, td { border-bottom: 1px solid #e2e8f0; padding: 8px; text-align: left; font-size: 13px; }
+      th { background: #f1f5f9; position: sticky; top: 0; }
+      .wrap { overflow: auto; max-height: 78vh; border: 1px solid #e2e8f0; border-radius: 10px; }
+      .muted { color: #64748b; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <h1>Orders</h1>
+    <p class="muted">Read-only page for reviewing submitted orders. No admin actions.</p>
+    <div class="bar">
+      <button id="refreshBtn">Refresh</button>
+      <a href="/api/orders.csv">Download CSV</a>
+      <span id="count" class="muted"></span>
+    </div>
+    <div class="wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Created At</th>
+            <th>Model</th>
+            <th>Qty</th>
+            <th>Total</th>
+            <th>Name</th>
+            <th>City</th>
+            <th>Address</th>
+            <th>Phone</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <script>
+      async function loadOrders() {
+        const res = await fetch("/api/orders?limit=500");
+        const data = await res.json();
+        const rows = document.getElementById("rows");
+        const count = document.getElementById("count");
+        rows.innerHTML = "";
+        (data.orders || []).forEach((o) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${o.id}</td>
+            <td>${o.created_at}</td>
+            <td>${o.model}</td>
+            <td>${o.quantity}</td>
+            <td>${o.total_price}</td>
+            <td>${o.fullname}</td>
+            <td>${o.city}</td>
+            <td>${o.address}</td>
+            <td>${o.phone}</td>
+          `;
+          rows.appendChild(tr);
+        });
+        count.textContent = `${data.count || 0} orders loaded`;
+      }
+      document.getElementById("refreshBtn").addEventListener("click", loadOrders);
+      loadOrders();
+    </script>
+  </body>
+</html>
