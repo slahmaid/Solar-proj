@@ -169,6 +169,9 @@
                 form.reset();
                 syncPrice();
                 syncVariantImage();
+                window.setTimeout(function () {
+                  window.location.href = "/thank-you";
+                }, 500);
               })
               .catch(function () {
                 setStatus("تعذّر الإرسال حالياً. حاول مجدداً بعد لحظات.", "is-error");
