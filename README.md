@@ -57,6 +57,13 @@ The script creates a tab **Orders** with headers:
 - A hidden honeypot field reduces simple bot spam.
 - If sheet send fails (network), the user is still sent to WhatsApp so you do not lose the lead.
 
+### Troubleshooting (no rows in the sheet)
+
+1. **Spreadsheet binding** — In `Code.gs`, set `SPREADSHEET_ID` to the ID from your sheet URL (`.../d/THIS_ID/edit`). Use this if the Apps Script project was **not** created via **Extensions → Apps Script** from inside that sheet. If `SPREADSHEET_ID` is empty and the script is standalone, `getActiveSpreadsheet()` is `null` and **no rows are written**.
+2. **Redeploy** — After editing `Code.gs`, use **Deploy → Manage deployments → Edit** (new version) so the live URL runs the latest code.
+3. **Executions** — In Apps Script, open **Executions** and check for errors (e.g. permission, wrong sheet ID).
+4. **Token** — `data-sheet-token` in `index.html` must match `SECRET_TOKEN` in `Code.gs` exactly.
+
 ## Run locally
 
 Open `index.html` in a browser, or serve the folder so asset paths resolve correctly:

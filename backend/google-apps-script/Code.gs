@@ -4,13 +4,16 @@
  * Sheet tab: "Orders"
  * Columns: Date | Model | Quantity | Total (MAD) | Full name | City | Address | Phone | Form | Page URL
  *
- * 1) Create/open a Google Sheet bound to this script (or use container-bound script from Sheet).
- * 2) Replace SECRET_TOKEN below with a long random string.
- * 3) Deploy → New deployment → Web app → Execute as: Me → Who has access: Anyone.
- * 4) Copy the Web app URL into index.html: data-sheet-endpoint="..."
- * 5) Put the same token in index.html: data-sheet-token="..."
+ * 1) Create a Google Sheet. Copy its ID from the URL (.../d/SHEET_ID_HERE/edit).
+ * 2) Paste SHEET_ID below (required if the script is NOT created from the Sheet menu).
+ * 3) Replace SECRET_TOKEN below with a long random string.
+ * 4) Deploy → New deployment → Web app → Execute as: Me → Who has access: Anyone.
+ * 5) Copy the Web app URL into index.html: data-sheet-endpoint="..."
+ * 6) Put the same token in index.html: data-sheet-token="..."
  */
 var SHEET_NAME = "Orders";
+/** Paste spreadsheet ID from https://docs.google.com/spreadsheets/d/THIS_PART/edit — leave "" only if script is bound via Sheet → Extensions → Apps Script */
+var SPREADSHEET_ID = "";
 var SECRET_TOKEN = "1df6fe69dc607f88fec71e6cbb1c4793aef13be5b5939bd7997e51d07d43cd8b725093acf25c45810d3bad6360904cca";
 
 function doGet() {
@@ -70,8 +73,19 @@ function doPost(e) {
   }
 }
 
+function getSpreadsheet_() {
+  if (SPREADSHEET_ID && String(SPREADSHEET_ID).trim()) {
+    return SpreadsheetApp.openById(String(SPREADSHEET_ID).trim());
+  }
+  var bound = SpreadsheetApp.getActiveSpreadsheet();
+  if (!bound) {
+    throw new Error("No spreadsheet: set SPREADSHEET_ID in Code.gs or create this script from the Sheet (Extensions → Apps Script).");
+  }
+  return bound;
+}
+
 function getOrCreateSheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
@@ -94,11 +108,15 @@ function getOrCreateSheet_() {
 }
 
 function parseJsonBody_(e) {
-  if (!e || !e.postData || !e.postData.contents) {
+  if (!e || !e.postData) {
+    return null;
+  }
+  var raw = e.postData.contents;
+  if (!raw || String(raw).trim() === "") {
     return null;
   }
   try {
-    return JSON.parse(e.postData.contents);
+    return JSON.parse(raw);
   } catch (ex) {
     return null;
   }

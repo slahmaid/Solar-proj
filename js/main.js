@@ -134,34 +134,60 @@
             window.location.href = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
           }
 
-          function sendOrderToSheetFireAndForget(endpoint, payload) {
+          /**
+           * Sends order to Google Apps Script, then opens WhatsApp.
+           * Uses sendBeacon when possible (survives navigation), else fetch + short wait so the POST completes.
+           */
+          function sendOrderToSheetThenWhatsApp(endpoint, payload, goWhatsApp) {
             var body = JSON.stringify(payload);
+            var blob = new Blob([body], { type: "text/plain" });
             var isAppsScript = /script\.google\.com\/macros\/s\//i.test(endpoint);
-            try {
-              if (typeof fetch !== "function") {
-                return;
+
+            function finish() {
+              goWhatsApp();
+            }
+
+            if (isAppsScript && typeof navigator.sendBeacon === "function") {
+              try {
+                if (navigator.sendBeacon(endpoint, blob)) {
+                  window.setTimeout(finish, 500);
+                  return;
+                }
+              } catch (sbErr) {
+                /* fall through to fetch */
               }
-              if (isAppsScript) {
-                fetch(endpoint, {
+            }
+
+            if (typeof fetch !== "function") {
+              finish();
+              return;
+            }
+
+            var fetchOpts = isAppsScript
+              ? {
                   method: "POST",
                   mode: "no-cors",
                   cache: "no-store",
-                  keepalive: true,
                   headers: { "Content-Type": "text/plain;charset=utf-8" },
                   body: body
-                }).catch(function () {});
-                return;
-              }
-              fetch(endpoint, {
-                method: "POST",
-                cache: "no-store",
-                keepalive: true,
-                headers: { "Content-Type": "application/json" },
-                body: body
-              }).catch(function () {});
-            } catch (err) {
-              /* ignore — WhatsApp redirect still runs */
-            }
+                }
+              : {
+                  method: "POST",
+                  cache: "no-store",
+                  headers: { "Content-Type": "application/json" },
+                  body: body
+                };
+
+            Promise.race([
+              fetch(endpoint, fetchOpts).catch(function () {
+                return null;
+              }),
+              new Promise(function (resolve) {
+                window.setTimeout(resolve, 2500);
+              })
+            ]).then(function () {
+              finish();
+            });
           }
 
           form.addEventListener("submit", function (e) {
@@ -212,12 +238,13 @@
 
             try {
               if (sheetEndpoint && sheetToken) {
-                sendOrderToSheetFireAndForget(sheetEndpoint, payload);
+                sendOrderToSheetThenWhatsApp(sheetEndpoint, payload, goWhatsApp);
+              } else {
+                goWhatsApp();
               }
             } catch (err2) {
-              /* still open WhatsApp */
+              goWhatsApp();
             }
-            window.setTimeout(goWhatsApp, 0);
           });
         }
 
