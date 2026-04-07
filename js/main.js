@@ -1,276 +1,125 @@
       (function () {
-        function initOrderForm(form) {
-          var saleTarget = form.getAttribute("data-price-sale-target");
-          var compareTarget = form.getAttribute("data-price-compare-target");
-          var discountTarget = form.getAttribute("data-discount-target");
-          var imgTarget = form.getAttribute("data-variant-img-target");
-          var saleEl = saleTarget ? document.getElementById(saleTarget) : null;
-          var compareEl = compareTarget ? document.getElementById(compareTarget) : null;
-          var discountEl = discountTarget ? document.getElementById(discountTarget) : null;
-          var variantImg = imgTarget ? document.getElementById(imgTarget) : null;
-          var radios = form.querySelectorAll(".variant-row input[type='radio']");
-          var qtyInput = form.querySelector(".quantity-control input[type='number']");
-          var btnMinus = form.querySelector(".qty-minus-btn");
-          var btnPlus = form.querySelector(".qty-plus-btn");
-          var totalAmountEl = form.querySelector(".quantity-total-amount");
+        "use strict";
 
-          function formatDhAmount(n) {
-            var num = parseInt(String(n), 10);
-            if (isNaN(num)) return String(n);
-            return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " د.م";
+        function formatDhAmount(n) {
+          var num = parseInt(String(n), 10);
+          if (isNaN(num)) return String(n);
+          return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " د.م";
+        }
+
+        function discountPercent(sale, compare) {
+          var s = parseInt(String(sale), 10);
+          var c = parseInt(String(compare), 10);
+          if (isNaN(s) || isNaN(c) || c <= 0 || s > c) return null;
+          return Math.round((1 - s / c) * 100);
+        }
+
+        function initCodForm(form) {
+          var saleEl = document.getElementById(form.getAttribute("data-price-sale-target"));
+          var compareEl = document.getElementById(form.getAttribute("data-price-compare-target"));
+          var discountEl = document.getElementById(form.getAttribute("data-discount-target"));
+          var totalEl = form.querySelector(".cod-total-amount");
+          var previewEl = document.getElementById(form.getAttribute("data-variant-img-target"));
+          var qtyInput = form.querySelector(".cod-qty-input");
+          var minusBtn = form.querySelector(".cod-qty-minus");
+          var plusBtn = form.querySelector(".cod-qty-plus");
+
+          function selectedVariant() {
+            return form.querySelector(".variant-row input[type='radio']:checked");
           }
-
-          function discountPercent(sale, compare) {
-            var s = parseInt(String(sale), 10);
-            var c = parseInt(String(compare), 10);
-            if (isNaN(s) || isNaN(c) || c <= 0 || s > c) return null;
-            return Math.round((1 - s / c) * 100);
-          }
-
-          function syncPrice() {
-            var checked = form.querySelector(".variant-row input[type='radio']:checked");
-            if (!checked) return;
-            var sale = checked.dataset.priceSale;
-            var compare = checked.dataset.priceCompare;
-            if (saleEl && sale) saleEl.textContent = sale;
-            if (compareEl && compare) compareEl.textContent = formatDhAmount(compare);
-            if (discountEl && sale && compare) {
-              var pct = discountPercent(sale, compare);
-              if (pct !== null) {
-                discountEl.innerHTML =
-                  "خصم <span class=\"cta-price-discount-pct\" dir=\"ltr\">" + pct + "%</span>";
-              }
-            }
-            syncTotal();
-          }
-
-          function syncTotal() {
-            if (!totalAmountEl || !qtyInput) return;
-            var checked = form.querySelector(".variant-row input[type='radio']:checked");
-            if (!checked) return;
-            var unit = parseInt(String(checked.dataset.priceSale), 10);
-            var qty = parseInt(qtyInput.value, 10);
-            if (isNaN(qty) || qty < 1) qty = 1;
-            if (isNaN(unit)) return;
-            totalAmountEl.textContent = formatDhAmount(String(unit * qty));
-          }
-
-          function syncVariantImage() {
-            var checked = form.querySelector(".variant-row input[type='radio']:checked");
-            if (!checked || !variantImg) return;
-            var src = checked.dataset.variantImg;
-            if (src) variantImg.src = src;
-            var alt = checked.dataset.variantAlt;
-            if (alt) variantImg.alt = alt;
-          }
-
-          radios.forEach(function (r) {
-            r.addEventListener("change", function () {
-              syncPrice();
-              syncVariantImage();
-            });
-          });
-          syncPrice();
-          syncVariantImage();
 
           function clampQty() {
-            if (!qtyInput) return;
             var n = parseInt(qtyInput.value, 10);
             if (isNaN(n) || n < 1) n = 1;
             if (n > 99) n = 99;
             qtyInput.value = String(n);
           }
 
-          if (btnMinus && qtyInput) {
-            btnMinus.addEventListener("click", function () {
-              qtyInput.value = String(Math.max(1, parseInt(qtyInput.value, 10) - 1 || 1));
-              clampQty();
-              syncTotal();
-            });
-          }
-          if (btnPlus && qtyInput) {
-            btnPlus.addEventListener("click", function () {
-              qtyInput.value = String(Math.min(99, (parseInt(qtyInput.value, 10) || 1) + 1));
-              clampQty();
-              syncTotal();
-            });
-          }
-          if (qtyInput) {
-            qtyInput.addEventListener("change", function () {
-              clampQty();
-              syncTotal();
-            });
-            qtyInput.addEventListener("input", syncTotal);
-          }
+          function syncForm() {
+            var checked = selectedVariant();
+            if (!checked) return;
+            var sale = parseInt(checked.dataset.priceSale, 10);
+            var compare = parseInt(checked.dataset.priceCompare, 10);
+            var qty = parseInt(qtyInput.value, 10) || 1;
 
-          function getFieldValue(candidates) {
-            for (var i = 0; i < candidates.length; i += 1) {
-              var el = form.querySelector(candidates[i]);
-              if (el && el.value) return el.value.trim();
-            }
-            return "";
-          }
-
-          function getFieldElement(candidates) {
-            for (var i = 0; i < candidates.length; i += 1) {
-              var el = form.querySelector(candidates[i]);
-              if (el) return el;
-            }
-            return null;
-          }
-
-          function normalizeDigits(value) {
-            return String(value || "")
-              .replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 1632); })
-              .replace(/[۰-۹]/g, function (d) { return String(d.charCodeAt(0) - 1776); });
-          }
-
-          function normalizePhone(raw) {
-            return normalizeDigits(raw).replace(/[^\d+]/g, "");
-          }
-
-          function isValidMoroccanPhone(raw) {
-            var phone = normalizePhone(raw);
-            if (/^(\+212|212)([5-7]\d{8})$/.test(phone)) return true;
-            if (/^0([5-7]\d{8})$/.test(phone)) return true;
-            return false;
-          }
-
-          function getOrderEndpoint() {
-            var byForm = form.getAttribute("data-order-endpoint");
-            if (byForm) return byForm;
-            return "/api/orders";
-          }
-
-          function setSubmitStatus(message, isError) {
-            var statusEl = form.querySelector(".form-submit-status");
-            if (!statusEl) return;
-            statusEl.textContent = message;
-            statusEl.classList.remove("is-success", "is-error");
-            statusEl.classList.add(isError ? "is-error" : "is-success");
-          }
-
-          function clearSubmitStatus() {
-            var statusEl = form.querySelector(".form-submit-status");
-            if (!statusEl) return;
-            statusEl.textContent = "";
-            statusEl.classList.remove("is-success", "is-error");
-          }
-
-          function submitViaHiddenForm(endpoint, payload) {
-            return new Promise(function (resolve, reject) {
-              try {
-                var frameName = "order_submit_frame_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
-                var iframe = document.createElement("iframe");
-                iframe.name = frameName;
-                iframe.style.display = "none";
-
-                var hiddenForm = document.createElement("form");
-                hiddenForm.method = "POST";
-                hiddenForm.action = endpoint;
-                hiddenForm.target = frameName;
-                hiddenForm.style.display = "none";
-
-                Object.keys(payload).forEach(function (key) {
-                  var input = document.createElement("input");
-                  input.type = "hidden";
-                  input.name = key;
-                  input.value = payload[key];
-                  hiddenForm.appendChild(input);
-                });
-
-                var cleaned = false;
-                function cleanup() {
-                  if (cleaned) return;
-                  cleaned = true;
-                  if (hiddenForm.parentNode) hiddenForm.parentNode.removeChild(hiddenForm);
-                  if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-                }
-
-                var timeout = setTimeout(function () {
-                  cleanup();
-                  reject(new Error("ORDER_SUBMIT_TIMEOUT"));
-                }, 15000);
-
-                iframe.onload = function () {
-                  clearTimeout(timeout);
-                  cleanup();
-                  resolve();
-                };
-
-                document.body.appendChild(iframe);
-                document.body.appendChild(hiddenForm);
-                hiddenForm.submit();
-              } catch (err) {
-                reject(err);
+            if (saleEl) saleEl.textContent = String(sale);
+            if (compareEl) compareEl.textContent = formatDhAmount(compare);
+            if (discountEl) {
+              var pct = discountPercent(sale, compare);
+              if (pct !== null) {
+                discountEl.innerHTML =
+                  "خصم <span class=\"cta-price-discount-pct\" dir=\"ltr\">" + pct + "%</span>";
               }
-            });
+            }
+            if (totalEl) totalEl.textContent = formatDhAmount(sale * qty);
+            if (previewEl) {
+              previewEl.src = checked.dataset.variantImg || previewEl.src;
+              previewEl.alt = checked.dataset.variantAlt || previewEl.alt;
+            }
           }
 
-          form.addEventListener("submit", async function (e) {
+          form.querySelectorAll(".variant-row input[type='radio']").forEach(function (el) {
+            el.addEventListener("change", syncForm);
+          });
+
+          minusBtn.addEventListener("click", function () {
+            qtyInput.value = String(Math.max(1, (parseInt(qtyInput.value, 10) || 1) - 1));
+            clampQty();
+            syncForm();
+          });
+
+          plusBtn.addEventListener("click", function () {
+            qtyInput.value = String(Math.min(99, (parseInt(qtyInput.value, 10) || 1) + 1));
+            clampQty();
+            syncForm();
+          });
+
+          qtyInput.addEventListener("input", function () {
+            clampQty();
+            syncForm();
+          });
+
+          form.addEventListener("submit", function (e) {
             e.preventDefault();
             if (!form.checkValidity()) {
               form.reportValidity();
               return;
             }
 
-            var checked = form.querySelector(".variant-row input[type='radio']:checked");
-            var model = checked ? (checked.value || "").toUpperCase() : "";
-            var unitPrice = checked && checked.dataset.priceSale ? checked.dataset.priceSale + " د.م" : "-";
-            var qty = qtyInput ? qtyInput.value : "1";
-            var fullname = getFieldValue(["#fullname", "#fullname-retarget", "input[name='fullname']", "input[name='fullname_rt']"]);
-            var city = getFieldValue(["#city", "#city-retarget", "input[name='city']", "input[name='city_rt']"]);
-            var address = getFieldValue(["#address", "#address-retarget", "input[name='address']", "input[name='address_rt']"]);
-            var phone = getFieldValue(["#phone", "#phone-retarget", "input[name='phone']", "input[name='phone_rt']"]);
-            var phoneEl = getFieldElement(["#phone", "#phone-retarget", "input[name='phone']", "input[name='phone_rt']"]);
-            var total = totalAmountEl ? totalAmountEl.textContent.trim() : "-";
-            var endpoint = getOrderEndpoint();
-            var submitBtn = form.querySelector("button[type='submit']");
+            var checked = selectedVariant();
+            var variant = checked ? checked.value.toUpperCase() : "-";
+            var sale = checked ? checked.dataset.priceSale : "-";
+            var compare = checked ? checked.dataset.priceCompare : "-";
+            var qty = qtyInput.value;
+            var fullname = form.querySelector("[name='fullname']").value.trim();
+            var city = form.querySelector("[name='city']").value.trim();
+            var address = form.querySelector("[name='address']").value.trim();
+            var phone = form.querySelector("[name='phone']").value.trim();
+            var total = totalEl ? totalEl.textContent.trim() : "-";
+            var telLink = document.querySelector(".site-footer-phone a[href^='tel:']");
+            var whatsappNumber = telLink
+              ? (telLink.getAttribute("href") || "").replace("tel:", "").replace(/\D/g, "")
+              : "212600000000";
 
-            if (phoneEl) phoneEl.setCustomValidity("");
-            if (!isValidMoroccanPhone(phone)) {
-              var errText = "يرجى إدخال رقم هاتف مغربي صحيح (مثال: 06XXXXXXXX أو +2126XXXXXXXX).";
-              if (phoneEl) {
-                phoneEl.setCustomValidity(errText);
-                phoneEl.reportValidity();
-              } else {
-                setSubmitStatus(errText, true);
-              }
-              return;
-            }
+            var message =
+              "السلام عليكم، أريد تأكيد طلب COD:\n" +
+              "- الموديل: " + variant + "\n" +
+              "- السعر الحالي: " + sale + " د.م\n" +
+              "- السعر قبل التخفيض: " + compare + " د.م\n" +
+              "- الكمية: " + qty + "\n" +
+              "- المجموع: " + total + "\n" +
+              "- الاسم: " + fullname + "\n" +
+              "- المدينة: " + city + "\n" +
+              "- العنوان: " + address + "\n" +
+              "- الهاتف: " + phone;
 
-            var payload = {
-              model: model,
-              quantity: qty,
-              unitPrice: unitPrice,
-              total: total,
-              fullname: fullname,
-              city: city,
-              address: address,
-              phone: normalizePhone(phone),
-              formId: form.id || "order-form",
-              pageUrl: window.location.href,
-              submittedAt: new Date().toISOString()
-            };
-
-            clearSubmitStatus();
-            if (submitBtn) submitBtn.disabled = true;
-            try {
-              await submitViaHiddenForm(endpoint, payload);
-
-              setSubmitStatus("تم إرسال طلبك بنجاح. سنتواصل معك قريباً لتأكيد التفاصيل.", false);
-              form.reset();
-              syncPrice();
-              syncVariantImage();
-            } catch (err) {
-              setSubmitStatus("تعذر إرسال الطلب حالياً. يرجى المحاولة بعد قليل أو التواصل معنا هاتفياً.", true);
-            } finally {
-              if (submitBtn) submitBtn.disabled = false;
-            }
+            window.location.href = "https://wa.me/" + whatsappNumber + "?text=" + encodeURIComponent(message);
           });
+
+          syncForm();
         }
 
-        document.querySelectorAll(".order-form").forEach(initOrderForm);
+        document.querySelectorAll(".cod-form").forEach(initCodForm);
       })();
 
       (function () {
@@ -295,34 +144,47 @@
       })();
 
       (function () {
-        var orderSection = document.getElementById("order");
-        if (!orderSection) return;
-        if (sessionStorage.getItem("order_snap_done") === "1") return;
-        var lastY = window.scrollY || 0;
-        var snapped = false;
+        var prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (prefersReducedMotion) return;
 
-        function getOffset() {
-          var raw = getComputedStyle(document.documentElement).getPropertyValue("--scroll-anchor-offset");
-          var n = parseFloat(raw);
-          return isNaN(n) ? 120 : n;
+        var targets = document.querySelectorAll(
+          ".cta-inner, .feature-card, .split-showcase-inner, .review-card, .faq-item, .how-step, .mid-cta-media"
+        );
+        if (!targets.length) return;
+
+        function setGroupDelay(selector, step, start) {
+          var items = document.querySelectorAll(selector);
+          if (!items.length) return;
+          items.forEach(function (item, idx) {
+            item.style.setProperty("--reveal-delay", String((start || 0) + idx * step) + "ms");
+          });
         }
 
-        function maybeSnapToOrder() {
-          if (snapped) return;
-          var y = window.scrollY || window.pageYOffset || 0;
-          var movingDown = y > lastY;
-          lastY = y;
-          if (!movingDown || y < 60) return;
+        setGroupDelay(".feature-card", 70, 20);
+        setGroupDelay(".how-step", 80, 30);
+        setGroupDelay(".review-card", 65, 20);
+        setGroupDelay(".faq-item", 45, 10);
 
-          var rect = orderSection.getBoundingClientRect();
-          var triggerLine = window.innerHeight * 0.32;
-          if (rect.top > 0 && rect.top < triggerLine) {
-            snapped = true;
-            sessionStorage.setItem("order_snap_done", "1");
-            var targetTop = y + rect.top - getOffset();
-            window.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+        targets.forEach(function (el) {
+          el.classList.add("reveal-on-scroll");
+        });
+
+        var observer = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("is-visible");
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          {
+            threshold: 0.14,
+            rootMargin: "0px 0px -8% 0px"
           }
-        }
+        );
 
-        window.addEventListener("scroll", maybeSnapToOrder, { passive: true });
+        targets.forEach(function (el) {
+          observer.observe(el);
+        });
       })();
